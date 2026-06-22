@@ -1,0 +1,1 @@
+# keeps the data/ dir in git; cached files are ignored via .gitignore
