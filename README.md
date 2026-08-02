@@ -22,7 +22,7 @@ A Streamlit dashboard that fetches real-time AQI data from the **EPA AirNow API*
 ## Quickstart
 
 ```bash
-git clone https://github.com/your-username/air-quality-forecast.git
+git clone https://github.com/anishitagi-droid/air-quality-forecast.git
 cd air-quality-forecast
 
 python -m venv .venv
@@ -46,9 +46,11 @@ air-quality-forecast/
 ├── app.py               ← Streamlit UI and orchestration
 ├── config.py            ← Constants: AQI categories, API endpoints
 ├── requirements.txt
+├── requirements-dev.txt ← + pytest, for running tests
 ├── .gitignore
 ├── data/
 │   └── .gitkeep
+├── tests/               ← pytest suite for every src/ module
 └── src/
     ├── __init__.py
     ├── data_fetcher.py  ← EPA AirNow API client
@@ -58,6 +60,22 @@ air-quality-forecast/
     ├── analytics.py     ← Trend analysis, health advisories, primary pollutant
     └── stock_impact.py  ← Sector/ticker market impact analysis
 ```
+
+---
+
+## Running tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+36 tests covering every module in `src/`: AQI category boundaries, the
+ARIMA/ETS/mean-baseline forecast selection logic (including that confidence
+intervals actually widen with forecast horizon — they used to be flat
+regardless of how many days out), demo-data reproducibility, and the AirNow
+API client against mocked HTTP responses (no real network or API key
+needed to run the suite).
 
 ---
 

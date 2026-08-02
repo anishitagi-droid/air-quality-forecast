@@ -51,14 +51,28 @@ def _ets(series: pd.Series, steps: int) -> ForecastResult:
             series.dropna(), initialization_method="estimated"
         ).fit()
     point = fitted.forecast(steps)
-    sigma = fitted.resid.std()
-    z     = 1.96
+    resid_sigma = fitted.resid.std()
+    z = 1.96
     dates = pd.date_range(series.index[-1] + pd.Timedelta(days=1), periods=steps, freq="D")
+
+    # Forecast uncertainty should grow with horizon -- a 7-day-out prediction is
+    # genuinely less certain than tomorrow's, but a single sigma (this model's
+    # in-sample residual std) applied flat across every step gives day+7 the
+    # exact same interval width as day+1. statsmodels' ARIMA path handles this
+    # correctly via its own forecast error variance (see _arima's conf_int()
+    # above); SimpleExpSmoothing's .forecast() doesn't provide an equivalent
+    # out of the box without a full simulation. sqrt(h) is the standard
+    # textbook approximation for how prediction interval width grows under a
+    # random-walk-type process, and is a reasonable middle ground between
+    # "flat and wrong" and a full simulate()-based interval.
+    horizon = np.arange(1, steps + 1)
+    step_sigma = resid_sigma * np.sqrt(horizon)
+
     return ForecastResult(
         dates=dates,
         point=_clip(point.values),
-        lower=_clip(point.values - z * sigma),
-        upper=_clip(point.values + z * sigma),
+        lower=_clip(point.values - z * step_sigma),
+        upper=_clip(point.values + z * step_sigma),
         method="Exponential Smoothing",
     )
 
@@ -69,11 +83,15 @@ def _mean_baseline(series: pd.Series, steps: int) -> ForecastResult:
     sigma = float(tail.std()) if len(tail) > 1 else 5.0
     dates = pd.date_range(series.index[-1] + pd.Timedelta(days=1), periods=steps, freq="D")
     pt    = np.full(steps, mu)
+    # Same reasoning as _ets above: widen with sqrt(horizon) rather than a flat
+    # band, so a 7-day-out guess is honestly shown as less certain than tomorrow's.
+    horizon = np.arange(1, steps + 1)
+    step_sigma = sigma * np.sqrt(horizon)
     return ForecastResult(
         dates=dates,
         point=_clip(pt),
-        lower=_clip(pt - 1.96 * sigma),
-        upper=_clip(pt + 1.96 * sigma),
+        lower=_clip(pt - 1.96 * step_sigma),
+        upper=_clip(pt + 1.96 * step_sigma),
         method="7-Day Mean (baseline)",
     )
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 from typing import Optional
 
@@ -61,14 +62,27 @@ def fetch_historical_day(zip_code: str, api_key: str, obs_date: date) -> list[di
 
 
 def fetch_historical_range(zip_code: str, api_key: str, days: int = 30) -> list[dict]:
+    # These `days` requests are fully independent of each other, but were being
+    # made one at a time in a loop -- for the default 30-day window that's 30x
+    # the round-trip latency for no reason. A modest thread pool (not
+    # unbounded concurrency) gets most of the speedup while staying well
+    # within AirNow's free-tier rate limit (500 requests/hour), rather than
+    # firing all 30 at once.
     records: list[dict] = []
     today = date.today()
-    for delta in range(1, days + 1):
-        target = today - timedelta(days=delta)
-        try:
-            records.extend(fetch_historical_day(zip_code, api_key, target))
-        except AirNowError as exc:
-            log.warning("Skipping %s: %s", target, exc)
+    targets = [today - timedelta(days=delta) for delta in range(1, days + 1)]
+
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        future_to_target = {
+            pool.submit(fetch_historical_day, zip_code, api_key, target): target
+            for target in targets
+        }
+        for future in as_completed(future_to_target):
+            target = future_to_target[future]
+            try:
+                records.extend(future.result())
+            except AirNowError as exc:
+                log.warning("Skipping %s: %s", target, exc)
     return records
 
 

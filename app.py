@@ -9,6 +9,7 @@ from __future__ import annotations
 import sys
 import os
 import logging
+import platform
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -244,14 +245,12 @@ def _txt(aqi: int) -> str:
 
 def _fmt_date(d) -> str:
     """Cross-platform day formatting (no zero-padding). Linux: %-d, Windows: %#d."""
-    import platform
     fmt = "%b %#d" if platform.system() == "Windows" else "%b %-d"
     return d.strftime(fmt)
 
 
 def _fmt_date_long(d) -> str:
     """E.g. 'Monday, Jun 9'. Cross-platform — no zero-padded day."""
-    import platform
     fmt = "%A, %b %#d" if platform.system() == "Windows" else "%A, %b %-d"
     return d.strftime(fmt)
 
@@ -852,8 +851,7 @@ with tab_mkt:
                 unsafe_allow_html=True)
 
     sector_names   = [s.sector for s in all_sectors]
-    # Scores: rough directional + magnitude (positive up, negative down)
-    sensitivity    = [8, 7, 4, -8, -7, -6, -3, -4, -5]
+    sensitivity    = [s.sensitivity_score for s in all_sectors]
     bar_colors_mkt = ["#16a34a" if v > 0 else "#dc2626" for v in sensitivity]
 
     fig6 = go.Figure(go.Bar(

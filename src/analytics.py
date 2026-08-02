@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import platform
 from dataclasses import dataclass
 from typing import Optional
 
@@ -122,40 +123,49 @@ class HealthAdvisory:
     icon: str
 
 
-_ADVISORIES = [
-    (50,  "Good",               "#00E400", "✅",
-     "Air quality is satisfactory. Enjoy normal outdoor activities.",
-     "No precautions needed.",
-     "Great day for outdoor exercise."),
-    (100, "Moderate",           "#FFFF00", "🟡",
-     "Air quality is acceptable. Some pollutants may affect very sensitive individuals.",
-     "Consider reducing prolonged outdoor exertion if you experience symptoms.",
-     "Fine for most people. Unusually sensitive individuals should limit prolonged outdoor exertion."),
-    (150, "Unhealthy for Some", "#FF7E00", "🟠",
-     "Members of sensitive groups may experience health effects.",
-     "Reduce prolonged or heavy outdoor exertion. Watch for symptoms.",
-     "Sensitive groups should limit prolonged outdoor exertion."),
-    (200, "Unhealthy",          "#FF0000", "🔴",
-     "Everyone may begin to experience health effects.",
-     "Avoid prolonged outdoor exertion. Move activities indoors or reschedule.",
-     "Everyone should limit prolonged outdoor exertion."),
-    (300, "Very Unhealthy",     "#8F3F97", "🟣",
-     "Health alert: everyone may experience serious health effects.",
-     "Avoid all outdoor exertion. Stay indoors with windows closed.",
-     "Avoid all outdoor physical activity."),
-    (500, "Hazardous",          "#7E0023", "⛔",
-     "Health emergency: everyone is likely to be affected.",
-     "Stay indoors. Use air purifiers. Seek medical attention if symptoms occur.",
-     "Do NOT go outside. Emergency conditions."),
-]
+# Advisory text keyed by category name, layered onto config.AQI_CATEGORIES'
+# breakpoints/colors rather than re-listing them here too. Both files used to
+# define the same 6 (ceiling, category, color) triples independently -- a
+# real DRY violation (verified byte-for-byte identical) where updating a
+# breakpoint or color meant remembering to change it in two places, with no
+# guardrail against them silently drifting apart.
+_ADVISORY_TEXT: dict[str, tuple[str, str, str, str]] = {
+    # category: (icon, general, sensitive, outdoor_activity)
+    "Good": ("✅",
+        "Air quality is satisfactory. Enjoy normal outdoor activities.",
+        "No precautions needed.",
+        "Great day for outdoor exercise."),
+    "Moderate": ("🟡",
+        "Air quality is acceptable. Some pollutants may affect very sensitive individuals.",
+        "Consider reducing prolonged outdoor exertion if you experience symptoms.",
+        "Fine for most people. Unusually sensitive individuals should limit prolonged outdoor exertion."),
+    "Unhealthy for Some": ("🟠",
+        "Members of sensitive groups may experience health effects.",
+        "Reduce prolonged or heavy outdoor exertion. Watch for symptoms.",
+        "Sensitive groups should limit prolonged outdoor exertion."),
+    "Unhealthy": ("🔴",
+        "Everyone may begin to experience health effects.",
+        "Avoid prolonged outdoor exertion. Move activities indoors or reschedule.",
+        "Everyone should limit prolonged outdoor exertion."),
+    "Very Unhealthy": ("🟣",
+        "Health alert: everyone may experience serious health effects.",
+        "Avoid all outdoor exertion. Stay indoors with windows closed.",
+        "Avoid all outdoor physical activity."),
+    "Hazardous": ("⛔",
+        "Health emergency: everyone is likely to be affected.",
+        "Stay indoors. Use air purifiers. Seek medical attention if symptoms occur.",
+        "Do NOT go outside. Emergency conditions."),
+}
 
 
 def get_health_advisory(aqi: int) -> HealthAdvisory:
-    for ceiling, cat, color, icon, general, sensitive, outdoor in _ADVISORIES:
+    category, color = "Hazardous", AQI_CATEGORIES[-1][2]
+    for ceiling, cat, col in AQI_CATEGORIES:
         if aqi <= ceiling:
-            return HealthAdvisory(aqi, cat, color, general, sensitive, outdoor, icon)
-    _, cat, color, icon, general, sensitive, outdoor = _ADVISORIES[-1]
-    return HealthAdvisory(aqi, cat, color, general, sensitive, outdoor, icon)
+            category, color = cat, col
+            break
+    icon, general, sensitive, outdoor = _ADVISORY_TEXT[category]
+    return HealthAdvisory(aqi, category, color, general, sensitive, outdoor, icon)
 
 
 # ── Trend analysis ─────────────────────────────────────────────────────────────
@@ -207,8 +217,7 @@ def compute_trend(daily: pd.Series, threshold: int = 100) -> TrendSummary:
         else "No notable streak"
     )
 
-    import platform as _plt
-    _dfmt = "%b %#d" if _plt.system() == "Windows" else "%b %-d"
+    _dfmt = "%b %#d" if platform.system() == "Windows" else "%b %-d"
     best_day  = clean.idxmin().strftime(_dfmt)
     worst_day = clean.idxmax().strftime(_dfmt)
     volatility = float(clean.tail(14).std()) if len(clean) >= 2 else 0.0

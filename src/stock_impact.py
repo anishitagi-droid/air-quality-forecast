@@ -25,6 +25,14 @@ class SectorImpact:
     tickers: list[TickerImpact]
     aqi_threshold: int
     confidence: str   # "strong" | "moderate" | "weak"
+    # Rough directional + magnitude score for the sensitivity bar chart
+    # (positive = sector benefits, negative = sector is hurt). This used to
+    # live as a separate hardcoded array in app.py, positionally matched to
+    # this list by index with no named link between a value and its sector --
+    # any future add/remove/reorder here would have silently misaligned the
+    # chart with the wrong sectors. Now it travels with the sector it
+    # actually describes.
+    sensitivity_score: int
 
 
 SECTOR_IMPACTS: list[SectorImpact] = [
@@ -47,6 +55,7 @@ SECTOR_IMPACTS: list[SectorImpact] = [
         ],
         aqi_threshold=100,
         confidence="strong",
+        sensitivity_score=8,
     ),
     SectorImpact(
         sector="Air Filtration",
@@ -65,6 +74,7 @@ SECTOR_IMPACTS: list[SectorImpact] = [
         ],
         aqi_threshold=100,
         confidence="strong",
+        sensitivity_score=7,
     ),
     SectorImpact(
         sector="Clean Energy & EVs",
@@ -83,6 +93,7 @@ SECTOR_IMPACTS: list[SectorImpact] = [
         ],
         aqi_threshold=100,
         confidence="weak",
+        sensitivity_score=4,
     ),
     SectorImpact(
         sector="Outdoor Recreation",
@@ -102,6 +113,7 @@ SECTOR_IMPACTS: list[SectorImpact] = [
         ],
         aqi_threshold=100,
         confidence="strong",
+        sensitivity_score=-8,
     ),
     SectorImpact(
         sector="Airlines & Travel",
@@ -121,6 +133,7 @@ SECTOR_IMPACTS: list[SectorImpact] = [
         ],
         aqi_threshold=150,
         confidence="moderate",
+        sensitivity_score=-7,
     ),
     SectorImpact(
         sector="Agriculture & Food",
@@ -139,6 +152,7 @@ SECTOR_IMPACTS: list[SectorImpact] = [
         ],
         aqi_threshold=100,
         confidence="moderate",
+        sensitivity_score=-6,
     ),
     SectorImpact(
         sector="Insurance",
@@ -157,6 +171,7 @@ SECTOR_IMPACTS: list[SectorImpact] = [
         ],
         aqi_threshold=150,
         confidence="moderate",
+        sensitivity_score=-3,
     ),
     SectorImpact(
         sector="Real Estate",
@@ -175,6 +190,7 @@ SECTOR_IMPACTS: list[SectorImpact] = [
         ],
         aqi_threshold=150,
         confidence="moderate",
+        sensitivity_score=-4,
     ),
     SectorImpact(
         sector="Worker Productivity",
@@ -193,6 +209,7 @@ SECTOR_IMPACTS: list[SectorImpact] = [
         ],
         aqi_threshold=100,
         confidence="weak",
+        sensitivity_score=-5,
     ),
 ]
 
