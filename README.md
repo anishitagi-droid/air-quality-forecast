@@ -5,6 +5,7 @@ A Streamlit dashboard that fetches real-time AQI data from the **EPA AirNow API*
 ![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.32%2B-red)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow)
+[![CI](https://github.com/anishitagi-droid/air-quality-forecast/actions/workflows/ci.yml/badge.svg)](https://github.com/anishitagi-droid/air-quality-forecast/actions)
 
 ---
 
